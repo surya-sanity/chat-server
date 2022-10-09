@@ -6,7 +6,7 @@ const userRouter = require("express").Router();
 userRouter.post("/register", userController.registerUser);
 userRouter.post("/login", userController.loginUser);
 userRouter.get("/current", protect, userController.getCurrentUser);
-userRouter.get("/all", adminProtect, userController.getAllUsers);
+userRouter.get("/all", protect, userController.getAllUsers);
 userRouter.delete("/deleteAll", adminProtect, userController.deleteAllUsers);
 userRouter.delete(
   "/deleteUser/:id",
