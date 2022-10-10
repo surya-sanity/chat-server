@@ -6,6 +6,7 @@ const asyncHandler = require("express-async-handler");
 const { Op } = require("sequelize");
 
 const User = db.users;
+const Chat = db.chats;
 
 // @desc    Register new user
 // @route   POST /api/users/register
@@ -71,6 +72,7 @@ const loginUser = asyncHandler(async (req, res) => {
       email: user.email,
       token: generateToken(user.email),
       role: user.role,
+      avatar: user.avatar,
     });
   } else {
     res.status(400);
@@ -87,13 +89,42 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 
 // @desc    Get All Users data
 // @route   GET /api/users/all
-// @access  Admin
+// @access  User
 const getAllUsers = asyncHandler(async (req, res) => {
   const allUsers = await User.findAll({
     where: { id: { [Op.ne]: req.user.id } },
   });
 
   res.status(200).json(allUsers);
+});
+
+// @desc    Update User data
+// @route   PUT /api/users/update
+// @access  User
+const updateUser = asyncHandler(async (req, res) => {
+  const { id, firstName, lastName, avatar } = req.body
+
+  const userExist = await User.findOne({ where: { id } });
+
+  if (!userExist) {
+    res.status(400);
+    throw new Error("User doesn't exists!");
+  }
+
+  try {
+    await User.update({
+      firstName: firstName ?? userExist.firstName,
+      lastName: lastName ?? userExist.lastName,
+      avatar: avatar ?? userExist.avatar,
+    }, { where: { id } });
+  } catch (e) {
+    res.status(400);
+    throw new Error("Couldn't update, try again later");
+  }
+
+  const updatedUser = await User.findOne({ where: { id } });
+
+  res.status(200).json(updatedUser);
 });
 
 // @desc    Delete userById
@@ -137,6 +168,40 @@ const deleteAllUsers = asyncHandler(async (req, res) => {
     });
 });
 
+
+
+// @desc    Get All chats for user
+// @route   GET /api/chats/all/:id
+// @access  User
+
+const getChatsByUserId = asyncHandler(async (req, res) => {
+
+  const id = req.params.id;
+
+  if (!id) {
+    res.status(400)
+    throw new Error("Id cannot be empty");
+  }
+
+  const userId = id;
+
+  const chatsByUserId = await Chat.findAll({
+    where: {
+      [Op.or]: [
+        {
+          fromUserId: req.user.id,
+        },
+        {
+          toUserId: req.user.id
+        },
+        { fromUserId: userId, },
+        { toUserId: userId, },
+      ]
+    },
+  });
+  res.status(200).json(chatsByUserId);
+});
+
 // Generate JWT
 const generateToken = (email) => {
   return jwt.sign({ email }, process.env.JWT_SECRET, {
@@ -148,7 +213,9 @@ module.exports = {
   registerUser,
   loginUser,
   getCurrentUser,
+  updateUser,
   getAllUsers,
   deleteAllUsers,
   deleteUserById,
+  getChatsByUserId
 };

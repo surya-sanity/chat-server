@@ -32,6 +32,7 @@ db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
 db.users = require("./userModel.js")(sequelize, DataTypes);
+db.chats = require("./chatModel.js")(sequelize, DataTypes);
 
 db.sequelize.sync({ force: false }).then(() => {
   console.log("mysql resync done !!");
